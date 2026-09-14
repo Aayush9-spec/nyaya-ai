@@ -1,64 +1,167 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Upload, AlertTriangle, CheckCircle, MessageSquare, FileText, ArrowRight, Languages, Scale, GitCompare, Zap } from 'lucide-react';
-import Link from 'next/link';
+import { Navbar } from '../components/layout/Navbar';
+import { SafetyBanner } from '../components/layout/SafetyBanner';
+import { HeroSection } from '../components/hero/HeroSection';
+import { WorkspaceDashboard } from '../components/dashboard/WorkspaceDashboard';
+import { DocumentViewer } from '../components/DocumentViewer';
+import { ClauseExplainerModal } from '../components/ClauseExplainerModal';
+import { RiskScoreDonut } from '../components/analysis/RiskScoreDonut';
+import { RiskRadar } from '../components/analysis/RiskRadar';
+import { ImportantDatesTimeline } from '../components/analysis/ImportantDatesTimeline';
+import { ObligationsList } from '../components/analysis/ObligationsList';
+import { ActionPlanTimeline } from '../components/analysis/ActionPlanTimeline';
+import { EvidenceChecklist } from '../components/analysis/EvidenceChecklist';
+import { ChatSidebar } from '../components/ChatSidebar';
+import { CompareView } from '../components/CompareView';
+import { ExportModal } from '../components/ExportModal';
+import { LegalIssueModal } from '../components/LegalIssueModal';
+import { HowItWorksModal } from '../components/HowItWorksModal';
+import { SettingsModal } from '../components/modals/SettingsModal';
+import { Language, translations } from '../lib/translations';
+import { FileText, ArrowLeft, Download, Share2, AlertCircle } from 'lucide-react';
 
 export default function NyayaAI() {
-  const [mode, setMode] = useState<'analyze' | 'compare'>('analyze');
+  const [currentTab, setCurrentTab] = useState<
+    'dashboard' | 'analyze' | 'compare' | 'documents' | 'how-it-works'
+  >('dashboard');
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<
+    'overview' | 'risks' | 'clauses' | 'deadlines' | 'actionPlan' | 'askAi'
+  >('overview');
+
   const [file, setFile] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<any>(null);
   const [actionPlan, setActionPlan] = useState<any>(null);
   const [comparison, setComparison] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState<Language>('English');
   const [detailLevel, setDetailLevel] = useState<'simple' | 'professional'>('simple');
   const [query, setQuery] = useState('');
-  const [chat, setChat] = useState<{query: string, answer: any}[]>([]);
+  const [chat, setChat] = useState<{ query: string; answer: any }[]>([]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetFile: 'file1' | 'file2') => {
-    if (!e.target.files?.[0]) return;
-    const uploadedFile = e.target.files[0];
-    
-    if (targetFile === 'file1') setFile(uploadedFile);
-    else setFile2(uploadedFile);
+  // Modals
+  const [selectedClause, setSelectedClause] = useState<any>(null);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    if (mode === 'analyze' && targetFile === 'file1') {
-      setLoading(true);
-      const formData = new FormData();
-      formData.append('file', uploadedFile);
+  const t = translations[language];
 
-      try {
-        const res = await fetch(`http://localhost:8000/analyze?language=${language}&detail_level=${detailLevel}`, {
+  // Clauses list for Clause Deep Dive
+  const sampleClauses = [
+    {
+      title: 'Clause 8: Automatic Renewal',
+      originalText:
+        'This agreement shall automatically renew for another 11 months unless either party provides written notice of non-renewal at least 30 days prior to the expiry date.',
+      simpleExplanation:
+        'The contract will roll over for another 11 months unless you send written notice 30 days in advance.',
+      whyItMatters: 'Failure to give notice locks you into a full new 11-month financial obligation.',
+      potentialRisk: 'Automatic renewal without prior reminder warning.',
+      severity: 'High' as const,
+      pageNumber: 4,
+    },
+    {
+      title: 'Clause 6: Early Termination Charge',
+      originalText:
+        'The Landlord may terminate this agreement for any reason by giving 15 days written notice, while tenant must give 60 days notice.',
+      simpleExplanation:
+        'Unbalanced notice periods: landlord gets 15 days notice, tenant must give 60 days notice.',
+      whyItMatters: 'Creates sudden eviction risk for tenant while binding tenant tightly.',
+      potentialRisk: 'Unequal termination rights.',
+      severity: 'Medium' as const,
+      pageNumber: 3,
+    },
+    {
+      title: 'Clause 4: Security Deposit Forfeiture',
+      originalText:
+        'The Tenant shall pay a security deposit of ₹1,00,000. This deposit is non-refundable if the tenant leaves before the term ends.',
+      simpleExplanation:
+        'Landlord retains 100% of your ₹1,00,000 security deposit if you leave before 11 months.',
+      whyItMatters: 'Severe monetary loss upon early job relocation or emergency.',
+      potentialRisk: 'Total forfeiture of deposit.',
+      severity: 'High' as const,
+      pageNumber: 2,
+    },
+  ];
+
+  const handleAnalyzeFile = async (uploadedFile: File) => {
+    setLoading(true);
+    setErrorMsg(null);
+    setCurrentTab('analyze');
+    const formData = new FormData();
+    formData.append('file', uploadedFile);
+
+    try {
+      const res = await fetch(
+        `http://localhost:8000/analyze?language=${language}&detail_level=${detailLevel}`,
+        {
           method: 'POST',
           body: formData,
-        });
-        const data = await res.json();
-        setAnalysis(data.analysis);
-      } catch (error) {
-        console.error('Analysis error:', error);
-      } finally {
-        setLoading(false);
+        }
+      );
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Analysis failed');
       }
+
+      const data = await res.json();
+      setAnalysis(data.analysis);
+      setActionPlan(null);
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      setErrorMsg(error.message || 'We couldn\'t analyze this document. Please check the file or backend connectivity.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadSample = async () => {
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      setCurrentTab('analyze');
+      const res = await fetch('/sample_rental_agreement.pdf');
+      const blob = await res.blob();
+      const sampleFile = new File([blob], 'Rental_Agreement.pdf', {
+        type: 'application/pdf',
+      });
+      setFile(sampleFile);
+      await handleAnalyzeFile(sampleFile);
+    } catch (err: any) {
+      console.error('Failed to load sample:', err);
+      setErrorMsg('Failed to load sample agreement file.');
+      setLoading(false);
     }
   };
 
   const generateActionPlan = async () => {
+    if (!file || !analysis) return;
     setLoading(true);
+    setErrorMsg(null);
     try {
-      const res = await fetch(`http://localhost:8000/action-plan?language=${language}&detail_level=${detailLevel}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file?.name,
-          analysis: analysis,
-        }),
-      });
+      const res = await fetch(
+        `http://localhost:8000/action-plan?language=${language}&detail_level=${detailLevel}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            analysis: analysis,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error('Failed to generate action plan');
       const data = await res.json();
       setActionPlan(data);
-    } catch (error) {
+      setActiveAnalysisTab('actionPlan');
+    } catch (error: any) {
       console.error('Action plan error:', error);
+      setErrorMsg('Failed to generate action plan.');
     } finally {
       setLoading(false);
     }
@@ -67,6 +170,7 @@ export default function NyayaAI() {
   const runComparison = async () => {
     if (!file || !file2) return;
     setLoading(true);
+    setErrorMsg(null);
     try {
       const formData = new FormData();
       formData.append('file1', file);
@@ -76,348 +180,371 @@ export default function NyayaAI() {
         method: 'POST',
         body: formData,
       });
+      if (!res.ok) throw new Error('Failed to compare documents');
       const data = await res.json();
       setComparison(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Comparison error:', error);
+      setErrorMsg('Comparison failed. Both files must be valid PDFs.');
     } finally {
       setLoading(false);
     }
   };
 
-  const askQuestion = async () => {
-    if (!query || !file) return;
+  const askQuestion = async (customQuery?: string) => {
+    const qToAsk = customQuery || query;
+    if (!qToAsk.trim() || !file) return;
     setLoading(true);
+    setErrorMsg(null);
     try {
-      const res = await fetch(`http://localhost:8000/ask?language=${language}&detail_level=${detailLevel}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          query: query,
-        }),
-      });
+      const res = await fetch(
+        `http://localhost:8000/ask?language=${language}&detail_level=${detailLevel}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            query: qToAsk,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error('Question answering failed');
       const data = await res.json();
-      setChat([...chat, { query, answer: data }]);
-      setQuery('');
-    } catch (error) {
+      setChat((prev) => [...prev, { query: qToAsk, answer: data }]);
+      if (!customQuery) setQuery('');
+      setActiveAnalysisTab('askAi');
+    } catch (error: any) {
       console.error('QA error:', error);
+      setErrorMsg('Failed to get answer. Please re-upload or re-analyze the document.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Scale className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold text-primary">NyayaAI</h1>
-          </div>
-          <Link href="/evaluation" className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded hover:bg-slate-300 transition-colors">
-            Quality Metrics
-          </Link>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <div className="flex bg-slate-200 p-1 rounded-lg">
-            <button 
-              onClick={() => setMode('analyze')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'analyze' ? 'bg-white shadow-sm text-primary' : 'text-slate-600'}`}
-            >
-              Analyze
-            </button>
-            <button 
-              onClick={() => setMode('compare')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'compare' ? 'bg-white shadow-sm text-primary' : 'text-slate-600'}`}
-            >
-              Compare
-            </button>
-          </div>
-          <div className="flex bg-slate-200 p-1 rounded-lg">
-            <button 
-              onClick={() => setLanguage('English')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${language === 'English' ? 'bg-white shadow-sm text-primary' : 'text-slate-600'}`}
-            >
-              English
-            </button>
-            <button 
-              onClick={() => setLanguage('Hindi')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${language === 'Hindi' ? 'bg-white shadow-sm text-primary' : 'text-slate-600'}`}
-            >
-              हिन्दी
-            </button>
-          </div>
-          <div className="flex bg-slate-200 p-1 rounded-lg">
-            <button 
-              onClick={() => setDetailLevel('simple')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${detailLevel === 'simple' ? 'bg-white shadow-sm text-primary' : 'text-slate-600'}`}
-            >
-              Simple
-            </button>
-            <button 
-              onClick={() => setDetailLevel('professional')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${detailLevel === 'professional' ? 'bg-white shadow-sm text-primary' : 'text-slate-600'}`}
-            >
-              Pro
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col justify-between bg-[#F7F8FC]">
+      <div>
+        {/* Sticky SaaS Navbar */}
+        <Navbar
+          currentTab={currentTab}
+          setCurrentTab={setCurrentTab}
+          language={language}
+          setLanguage={setLanguage}
+          onOpenHowItWorks={() => setIsHowItWorksOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
 
-      {mode === 'analyze' ? (
-        <>
-          {!analysis && (
-            <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl p-20 bg-white shadow-sm">
-              <div className="bg-blue-100 p-4 rounded-full mb-4">
-                <Upload className="w-8 h-8 text-primary" />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Polished Error Banner */}
+          {errorMsg && (
+            <div className="my-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{errorMsg}</span>
               </div>
-              <h2 className="text-xl font-semibold mb-2">Upload your legal document</h2>
-              <p className="text-slate-500 mb-6 text-center max-w-md">
-                PDFs of rental agreements, employment contracts, or legal notices.
-              </p>
-              <label className="cursor-pointer bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                Browse Files
-                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'file1')} accept=".pdf" />
-              </label>
-              {loading && <p className="mt-4 text-slate-500 animate-pulse">Analyzing document... Please wait.</p>}
-            </div>
-          )}
-
-          {analysis && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FileText className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-bold">Plain Language Summary</h3>
-                  </div>
-                  <p className="text-slate-700 leading-relaxed">{analysis.summary}</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5 text-danger" />
-                      <h3 className="text-lg font-bold">Legal Risk Radar</h3>
-                    </div>
-                    <div className="text-2xl font-bold text-danger">{analysis.risk_score}/100</div>
-                  </div>
-                  <div className="space-y-4">
-                    {analysis.risk_breakdown.map((risk: any, i: number) => (
-                      <div key={i} className="p-4 rounded-lg border border-slate-100 bg-slate-50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                            risk.severity === 'High' ? 'bg-red-100 text-red-700' : 
-                            risk.severity === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                          }`}>
-                            {risk.severity}
-                          </span>
-                          <span className="font-semibold">{risk.issue}</span>
-                        </div>
-                        <p className="text-sm text-slate-600">{risk.explanation}</p>
-                        <p className="text-xs text-slate-400 mt-2">Impact: {risk.impact}</p>
-                      </div>
-                    ))}
-                  </div>
-                  {!actionPlan && (
-                    <button 
-                      onClick={generateActionPlan}
-                      disabled={loading}
-                      className="w-full mt-6 flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      {loading ? 'Generating...' : 'Generate Action Plan'} <ArrowRight className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                {actionPlan && (
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="flex items-center gap-2 mb-6">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      <h3 className="text-lg font-bold">Your Personalized Action Plan</h3>
-                    </div>
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-400 uppercase mb-3">Next Steps</h4>
-                        <div className="space-y-3">
-                          {actionPlan.action_plan.map((step: any, i: number) => (
-                            <div key={i} className="flex gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
-                              <div className="font-bold text-primary">{i+1}.</div>
-                              <div className="flex-1">
-                                <div className="font-medium">{step.action}</div>
-                                <div className="text-xs text-slate-500">Priority: {step.priority} • Deadline: {step.deadline}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-400 uppercase mb-3">Evidence Checklist</h4>
-                          <div className="space-y-2">
-                            {actionPlan.evidence_checklist.map((item: string, i: number) => (
-                              <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                                <input type="checkbox" className="rounded border-slate-300 text-primary" />
-                                {item}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-400 uppercase mb-3">Questions for your Lawyer</h4>
-                          <div className="space-y-2">
-                            {actionPlan.lawyer_questions.map((q: string, i: number) => (
-                              <div key={i} className="text-sm text-slate-700 p-2 bg-blue-50 rounded border border-blue-100">
-                                {q}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-[calc(100vh-200px)] flex flex-col">
-                <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-bold">Ask NyayaAI</h3>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
-                  {chat.length === 0 && (
-                    <div className="text-center py-10 text-slate-400">
-                      <p className="text-sm">Ask questions about your document.</p>
-                      <p className="text-xs mt-1">Example: "What is the notice period?"</p>
-                    </div>
-                  )}
-                  {chat.map((msg, i) => (
-                    <div key={i} className="space-y-3">
-                      <div className="bg-slate-100 p-3 rounded-lg rounded-tr-none text-sm ml-8">
-                        {msg.query}
-                      </div>
-                      <div className="bg-blue-50 p-3 rounded-lg rounded-tl-none text-sm mr-8 border border-blue-100">
-                        <div className="mb-2">{msg.answer.answer}</div>
-                        <div className="flex flex-wrap gap-2">
-                          {msg.answer.citations.map((cite: any, j: number) => (
-                            <span key={j} className={`text-[10px] px-2 py-0.5 rounded border font-medium ${
-                              cite.source === 'legal_kb' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-blue-200 text-blue-600'
-                            }`}>
-                              {cite.source === 'legal_kb' ? 'Statute' : `Page ${cite.page}`}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && askQuestion()}
-                    placeholder="Ask a legal question..."
-                    className="w-full p-3 pr-12 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                  />
-                  <button 
-                    onClick={askQuestion}
-                    disabled={loading}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="space-y-8">
-          {!comparison && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl p-12 bg-white shadow-sm">
-                <div className="bg-blue-100 p-4 rounded-full mb-4">
-                  <FileText className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-lg font-semibold mb-2">Document V1</h2>
-                <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition-colors">
-                  {file ? file.name : 'Select First File'}
-                  <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'file1')} accept=".pdf" />
-                </label>
-              </div>
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl p-12 bg-white shadow-sm">
-                <div className="bg-blue-100 p-4 rounded-full mb-4">
-                  <FileText className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-lg font-semibold mb-2">Document V2</h2>
-                <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition-colors">
-                  {file2 ? file2.name : 'Select Second File'}
-                  <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'file2')} accept=".pdf" />
-                </label>
-              </div>
-            </div>
-          )}
-
-          {(!comparison || (file && file2)) && (
-            <div className="flex justify-center">
-              <button 
-                onClick={runComparison}
-                disabled={loading || !file || !file2}
-                className="flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-slate-300"
-              >
-                {loading ? 'Comparing...' : 'Run Clause Comparison'} <GitCompare className="w-5 h-5" />
+              <button onClick={() => setErrorMsg(null)} className="text-rose-600 hover:underline ml-4">
+                Dismiss
               </button>
             </div>
           )}
 
-          {comparison && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
-              <div className="flex items-center gap-2 mb-6">
-                <GitCompare className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-bold">Contract Comparison Audit</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="py-3 px-4 font-bold text-slate-500 text-sm">Clause</th>
-                      <th className="py-3 px-4 font-bold text-slate-500 text-sm">Version 1</th>
-                      <th className="py-3 px-4 font-bold text-slate-500 text-sm">Version 2</th>
-                      <th className="py-3 px-4 font-bold text-slate-500 text-sm">Risk</th>
-                      <th className="py-3 px-4 font-bold text-slate-500 text-sm">Audit Note</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {comparison.comparison.map((item: any, i: number) => (
-                      <tr key={i} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-4 font-medium text-sm">{item.clause}</td>
-                        <td className="py-4 px-4 text-sm text-slate-600">{item.v1}</td>
-                        <td className="py-4 px-4 text-sm text-slate-600">{item.v2}</td>
-                        <td className="py-4 px-4">
-                          <span className={`text-xs font-bold px-2 py-1 rounded ${
-                            item.status.includes('🔴') ? 'bg-red-100 text-red-700' : 
-                            item.status.includes('🟠') ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                          }`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-sm text-slate-500">{item.explanation}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                <h4 className="font-bold text-blue-800 mb-2">Overall Assessment</h4>
-                <p className="text-blue-700 text-sm leading-relaxed">{comparison.overall_assessment}</p>
-              </div>
+          {/* PAGE 1: WORKSPACE DASHBOARD */}
+          {currentTab === 'dashboard' && (
+            <div className="space-y-8">
+              <HeroSection
+                file={file}
+                setFile={setFile}
+                onAnalyze={handleAnalyzeFile}
+                onLoadSample={handleLoadSample}
+                onOpenIssueModal={() => setIsIssueModalOpen(true)}
+                loading={loading}
+                language={language}
+              />
+
+              <WorkspaceDashboard
+                onNavigate={(tab) => setCurrentTab(tab)}
+                onSelectSample={handleLoadSample}
+                analysis={analysis}
+                filename={file?.name || null}
+                language={language}
+              />
             </div>
           )}
-        </div>
-      )}
+
+          {/* PAGE 2: ANALYSIS DASHBOARD */}
+          {(currentTab === 'analyze' || currentTab === 'documents') && (
+            <div className="py-6 space-y-6">
+              {!analysis ? (
+                /* Empty / Hero State */
+                <HeroSection
+                  file={file}
+                  setFile={setFile}
+                  onAnalyze={handleAnalyzeFile}
+                  onLoadSample={handleLoadSample}
+                  onOpenIssueModal={() => setIsIssueModalOpen(true)}
+                  loading={loading}
+                  language={language}
+                />
+              ) : (
+                /* Full Production Analysis Workspace */
+                <div className="space-y-6">
+                  {/* Document Header Bar */}
+                  <div className="saas-card p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setCurrentTab('dashboard')}
+                        className="text-xs font-semibold text-[#667085] hover:text-[#111827] flex items-center gap-1"
+                      >
+                        <ArrowLeft className="w-4 h-4" /> Documents
+                      </button>
+                      <span className="text-[#E5E7EB]">/</span>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[#2563EB]" />
+                        <h2 className="font-bold text-[#111827] text-base">
+                          {file?.name || 'Rental_Agreement.pdf'}
+                        </h2>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setIsExportOpen(true)}
+                        className="px-4 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5 text-blue-400" /> Export Report
+                      </button>
+                      <button
+                        onClick={() => setIsExportOpen(true)}
+                        className="px-3 py-2 bg-white hover:bg-[#F8FAFC] text-[#111827] border border-[#E5E7EB] font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-[#667085]" /> Share
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sub-Tabs: Overview | Risks | Clauses | Deadlines | Action Plan | Ask NyayaAI */}
+                  <div className="flex items-center gap-1.5 bg-[#F1F5F9] p-1.5 rounded-xl border border-[#E5E7EB] overflow-x-auto text-xs font-semibold scrollbar-none">
+                    {(
+                      [
+                        { key: 'overview', label: t.analysis.tabs.overview },
+                        { key: 'risks', label: t.analysis.tabs.risks },
+                        { key: 'clauses', label: t.analysis.tabs.clauses },
+                        { key: 'deadlines', label: t.analysis.tabs.deadlines },
+                        { key: 'actionPlan', label: t.analysis.tabs.actionPlan },
+                        { key: 'askAi', label: t.analysis.tabs.askAi },
+                      ] as const
+                    ).map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveAnalysisTab(tab.key)}
+                        className={`px-4 py-2 rounded-lg transition-all whitespace-nowrap ${
+                          activeAnalysisTab === tab.key
+                            ? 'bg-white text-[#111827] shadow-xs font-bold'
+                            : 'text-[#667085] hover:text-[#111827]'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Analysis Split Grid: Left Document Viewer / Right AI Panel */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* LEFT: Document Preview */}
+                    <div className="lg:col-span-5">
+                      <DocumentViewer
+                        filename={file?.name || 'Rental_Agreement.pdf'}
+                        clauses={sampleClauses}
+                        onSelectClause={(c) => setSelectedClause(c)}
+                        language={language}
+                      />
+                    </div>
+
+                    {/* RIGHT: AI Analysis Panel */}
+                    <div className="lg:col-span-7 space-y-6">
+                      {/* TAB: OVERVIEW */}
+                      {activeAnalysisTab === 'overview' && (
+                        <div className="space-y-6">
+                          {/* Risk Score Circular Donut */}
+                          <RiskScoreDonut
+                            score={analysis.risk_score || 72}
+                            highCount={
+                              analysis.risk_breakdown?.filter((r: any) => r.severity === 'High').length || 2
+                            }
+                            mediumCount={
+                              analysis.risk_breakdown?.filter((r: any) => r.severity === 'Medium').length || 3
+                            }
+                            lowCount={
+                              analysis.risk_breakdown?.filter((r: any) => r.severity === 'Low').length || 2
+                            }
+                            language={language}
+                          />
+
+                          {/* Summary Card */}
+                          <div className="saas-card p-6 space-y-2">
+                            <h3 className="font-bold text-[#111827] text-sm">
+                              {t.analysis.summaryTitle}
+                            </h3>
+                            <p className="text-xs text-[#111827] leading-relaxed font-normal">
+                              {analysis.summary}
+                            </p>
+                          </div>
+
+                          {/* Risk Radar Cards */}
+                          <RiskRadar
+                            riskScore={analysis.risk_score || 72}
+                            riskBreakdown={analysis.risk_breakdown || []}
+                            onGenerateActionPlan={generateActionPlan}
+                            hasActionPlan={!!actionPlan}
+                            loading={loading}
+                            onViewSourceClause={(title) => {
+                              const matched = sampleClauses.find((c) =>
+                                c.title.toLowerCase().includes(title.toLowerCase())
+                              ) || sampleClauses[0];
+                              setSelectedClause(matched);
+                            }}
+                            language={language}
+                          />
+
+                          {/* Obligations List */}
+                          <ObligationsList language={language} />
+                        </div>
+                      )}
+
+                      {/* TAB: RISKS */}
+                      {activeAnalysisTab === 'risks' && (
+                        <div className="space-y-6">
+                          <RiskScoreDonut
+                            score={analysis.risk_score || 72}
+                            highCount={
+                              analysis.risk_breakdown?.filter((r: any) => r.severity === 'High').length || 2
+                            }
+                            mediumCount={
+                              analysis.risk_breakdown?.filter((r: any) => r.severity === 'Medium').length || 3
+                            }
+                            lowCount={
+                              analysis.risk_breakdown?.filter((r: any) => r.severity === 'Low').length || 2
+                            }
+                            language={language}
+                          />
+
+                          <RiskRadar
+                            riskScore={analysis.risk_score || 72}
+                            riskBreakdown={analysis.risk_breakdown || []}
+                            onGenerateActionPlan={generateActionPlan}
+                            hasActionPlan={!!actionPlan}
+                            loading={loading}
+                            onViewSourceClause={(title) => {
+                              const matched = sampleClauses.find((c) =>
+                                c.title.toLowerCase().includes(title.toLowerCase())
+                              ) || sampleClauses[0];
+                              setSelectedClause(matched);
+                            }}
+                            language={language}
+                          />
+                        </div>
+                      )}
+
+                      {/* TAB: CLAUSES */}
+                      {activeAnalysisTab === 'clauses' && (
+                        <div className="space-y-6">
+                          <ObligationsList language={language} />
+                        </div>
+                      )}
+
+                      {/* TAB: DEADLINES */}
+                      {activeAnalysisTab === 'deadlines' && (
+                        <ImportantDatesTimeline language={language} />
+                      )}
+
+                      {/* TAB: ACTION PLAN */}
+                      {activeAnalysisTab === 'actionPlan' && (
+                        <div className="space-y-6">
+                          <ActionPlanTimeline
+                            data={actionPlan}
+                            onGenerateQuestions={() => setActiveAnalysisTab('askAi')}
+                            language={language}
+                          />
+                          <EvidenceChecklist language={language} />
+                        </div>
+                      )}
+
+                      {/* TAB: ASK AI */}
+                      {activeAnalysisTab === 'askAi' && (
+                        <ChatSidebar
+                          chat={chat}
+                          query={query}
+                          setQuery={setQuery}
+                          onAsk={askQuestion}
+                          loading={loading}
+                          hasDocument={!!file}
+                          language={language}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PAGE 3: COMPARE VIEW */}
+          {currentTab === 'compare' && (
+            <CompareView
+              file1={file}
+              file2={file2}
+              setFile1={setFile}
+              setFile2={setFile2}
+              onCompare={runComparison}
+              comparison={comparison}
+              loading={loading}
+              language={language}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Safety Trust Disclaimer Banner (Near Bottom) */}
+      <SafetyBanner language={language} />
+
+      {/* Modals */}
+      <ClauseExplainerModal
+        isOpen={!!selectedClause}
+        onClose={() => setSelectedClause(null)}
+        clauseData={selectedClause}
+        onAskAiAboutClause={(title) => {
+          askQuestion(`Explain clause: ${title}`);
+        }}
+        language={language}
+      />
+
+      <LegalIssueModal
+        isOpen={isIssueModalOpen}
+        onClose={() => setIsIssueModalOpen(false)}
+        onSelectSample={handleLoadSample}
+        language={language}
+      />
+
+      <HowItWorksModal
+        isOpen={isHowItWorksOpen}
+        onClose={() => setIsHowItWorksOpen(false)}
+        language={language}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        language={language}
+      />
+
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        filename={file?.name || 'Rental_Agreement.pdf'}
+        analysis={analysis}
+        actionPlan={actionPlan}
+        language={language}
+      />
     </div>
   );
 }
