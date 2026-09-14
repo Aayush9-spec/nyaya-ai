@@ -8,7 +8,11 @@ load_dotenv()
 
 class AIService:
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Bypass any inherited local OpenAI-compatible proxy.
+        self.client = OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url="https://api.openai.com/v1",
+        )
         self.model = "gpt-4o"
 
     def _get_persona(self, detail_level: str):
