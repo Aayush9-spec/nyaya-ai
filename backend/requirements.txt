@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+pydantic-settings
+openai
+anthropic
+langchain
+langchain-openai
+langchain-community
+psycopg2-binary
+pgvector
+python-dotenv
+PyPDF2
+tiktoken
