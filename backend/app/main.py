@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables first before any other imports
+load_dotenv()
+
 import json
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,8 +17,17 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     kb_dir = "data/legal_kb"
+    app.state.knowledge_base_ready = False
+    app.state.knowledge_base_error = None
     if os.path.exists(kb_dir):
-        vector_store_service.init_kb(kb_dir)
+        try:
+            vector_store_service.init_kb(kb_dir)
+            app.state.knowledge_base_ready = True
+        except Exception as error:
+            # Do not prevent the API from starting when an external embedding
+            # provider is temporarily unavailable or incorrectly configured.
+            app.state.knowledge_base_error = str(error)
+            print(f"Warning: legal knowledge base unavailable: {error}")
     yield
 
 app = FastAPI(title="NyayaAI Backend", lifespan=lifespan)
@@ -147,4 +161,8 @@ async def get_evaluation():
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "knowledge_base_ready": app.state.knowledge_base_ready,
+        "knowledge_base_error": app.state.knowledge_base_error,
+    }
