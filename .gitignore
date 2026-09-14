@@ -6,3 +6,9 @@ __pycache__/
 *.py[cod]
 uploads/
 data/legal_kb/*.txt
+venv/
+*.venv
+*.tsbuildinfo
+.DS_Store
+._*
+
