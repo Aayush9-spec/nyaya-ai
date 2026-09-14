@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'NyayaAI - Legal Action Navigator',
-  description: 'Understand your rights. Know your next step.',
+  title: 'NyayaAI — AI-Powered Legal Action Navigator',
+  description: 'Understand your legal documents. Know what to do next.',
 };
 
 export default function RootLayout({
@@ -13,7 +13,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-50 text-slate-900">{children}</body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-[#F7F8FC] text-[#111827] font-sans antialiased min-h-screen">
+        {children}
+      </body>
     </html>
   );
 }
