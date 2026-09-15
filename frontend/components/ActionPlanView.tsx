@@ -42,17 +42,53 @@ export const ActionPlanView: React.FC<ActionPlanViewProps> = ({ data, language }
     { name: '5. Recommended Professional Review', icon: UserCheck },
   ];
 
+  const [showLegalNotice, setShowLegalNotice] = useState(false);
+
+  const generateNoticeText = () => {
+    return `
+LEGAL NOTICE / FORMAL DEMAND
+Date: ${new Date().toLocaleDateString()}
+
+TO: Counterparty / Landlord / Opposing Party
+RE: Formal Demand and Notice of Contractual Compliance
+
+DEAR SIR/MADAM,
+
+I am writing this formal legal notice regarding our agreement and key obligations outlined below:
+
+SUMMARY OF ISSUES:
+${data.action_plan.map((a, i) => `${i + 1}. ${a.action} (Deadline: ${a.deadline})`).join('\n')}
+
+EVIDENCE & DOCUMENTATION MAINTAINED:
+${data.evidence_checklist.map((e) => `- ${e}`).join('\n')}
+
+FORMAL DEMAND & LEGAL RECOURSE:
+Please take notice that you are hereby requested to comply with the terms above within seven (7) days of receipt of this notice. Failure to address these matters will compel the undersigned to initiate appropriate legal proceedings before the competent court of jurisdiction for appropriate remedy, damages, and costs.
+
+SINCERELY,
+[Your Name / Authorized Representative]
+`.trim();
+  };
+
   return (
     <div className="saas-card p-6 sm:p-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
         <div>
           <h3 className="text-xl font-bold text-slate-900">{t.title}</h3>
           <p className="text-xs text-slate-500 font-normal">{t.subtitle}</p>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200">
-          <ShieldCheck className="w-4 h-4" /> Ready to Execute
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowLegalNotice(true)}
+            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+          >
+            <ClipboardList className="w-3.5 h-3.5" /> Draft Legal Notice
+          </button>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200">
+            <ShieldCheck className="w-4 h-4" /> Ready to Execute
+          </div>
         </div>
       </div>
 
@@ -170,6 +206,48 @@ export const ActionPlanView: React.FC<ActionPlanViewProps> = ({ data, language }
           </div>
         </div>
       </div>
+
+      {/* Legal Notice Modal */}
+      {showLegalNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <h4 className="font-bold text-sm">Formal Legal Notice Draft</h4>
+              <button
+                onClick={() => setShowLegalNotice(false)}
+                className="text-slate-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 bg-slate-50 overflow-y-auto flex-1 font-mono text-xs text-slate-800 whitespace-pre-wrap leading-relaxed">
+              {generateNoticeText()}
+            </div>
+            <div className="px-6 py-4 bg-white border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  const blob = new Blob([generateNoticeText()], { type: 'text/markdown' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'Legal_Notice_Draft.md';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl"
+              >
+                Download Notice (.md)
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl"
+              >
+                Print / Save PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

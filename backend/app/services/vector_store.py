@@ -14,25 +14,51 @@ class VectorStoreService:
             openai_api_key=api_key or "placeholder",
             openai_api_base="https://api.openai.com/v1",
         )
+        self.local_embeddings = None
+        self._init_local_embeddings()
+
         self.stores = {} # Store by filename: FAISS index or raw chunks
         self.kb_store = None # Global legal knowledge base
         self.raw_chunks = {} # Fallback raw text storage: filename -> list of chunks
         self.kb_raw_docs = [] # Fallback raw KB docs
 
+    def _init_local_embeddings(self):
+        """Initialize local dense embedding model for 100% offline RAG."""
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+            self.local_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            print("Successfully initialized local HuggingFaceEmbeddings (all-MiniLM-L6-v2).")
+        except Exception as e:
+            print(f"Notice: Local HuggingFace embeddings initialization deferred ({e}).")
+
     def add_document(self, filename: str, chunks: List[Dict]):
         self.raw_chunks[filename] = chunks
+        docs = [
+            Document(
+                page_content=chunk["content"], 
+                metadata={"page": chunk["page"], "start_index": chunk["start_index"]}
+            ) for chunk in chunks
+        ]
+        
+        # Primary: OpenAI Embeddings
         try:
-            docs = [
-                Document(
-                    page_content=chunk["content"], 
-                    metadata={"page": chunk["page"], "start_index": chunk["start_index"]}
-                ) for chunk in chunks
-            ]
             vector_store = FAISS.from_documents(docs, self.embeddings)
             self.stores[filename] = vector_store
+            return
         except Exception as e:
-            print(f"Warning: Vector embedding index skipped ({e}). Using text-similarity fallback store.")
-            self.stores[filename] = None
+            print(f"OpenAI Vector embedding skipped ({e}). Attempting local dense vector index...")
+
+        # Secondary: Local Dense HuggingFace Embeddings
+        if self.local_embeddings:
+            try:
+                vector_store = FAISS.from_documents(docs, self.local_embeddings)
+                self.stores[filename] = vector_store
+                print(f"Indexed {filename} using local HuggingFace dense vector embeddings.")
+                return
+            except Exception as le:
+                print(f"Local dense embedding index skipped ({le}).")
+
+        self.stores[filename] = None
 
     def init_kb(self, kb_dir: str):
         """Initialize the global legal knowledge base from text files."""
@@ -56,6 +82,13 @@ class VectorStoreService:
             try:
                 self.kb_store = FAISS.from_documents(kb_docs, self.embeddings)
             except Exception as e:
+                if self.local_embeddings:
+                    try:
+                        self.kb_store = FAISS.from_documents(kb_docs, self.local_embeddings)
+                        print("Initialized global legal KB with local HuggingFace embeddings.")
+                        return
+                    except Exception:
+                        pass
                 print(f"Warning: KB vector embedding skipped ({e}). Using text fallback for KB.")
                 self.kb_store = None
 

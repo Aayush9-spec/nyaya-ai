@@ -32,6 +32,22 @@ export default function EvaluationPage() {
     );
   }
 
+  const [runningBenchmark, setRunningBenchmark] = useState(false);
+
+  const runBenchmark = async () => {
+    setRunningBenchmark(true);
+    try {
+      await fetch('http://localhost:8000/evaluate/run', { method: 'POST' });
+      const res = await fetch('http://localhost:8000/evaluate');
+      const json = await res.json();
+      setData(json);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRunningBenchmark(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto space-y-8 bg-[#F7F8FC]">
       {/* Top Header */}
@@ -48,12 +64,23 @@ export default function EvaluationPage() {
           </p>
         </div>
 
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95"
-        >
-          <ArrowLeft className="w-4 h-4 text-blue-400" /> Back to App
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={runBenchmark}
+            disabled={runningBenchmark}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95"
+          >
+            <Activity className="w-4 h-4" />
+            {runningBenchmark ? 'Running Audit...' : 'Run Live RAG Benchmark'}
+          </button>
+
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-4 h-4 text-blue-400" /> Back to App
+          </Link>
+        </div>
       </div>
 
       {/* Metric Cards Grid */}
