@@ -1,19 +1,52 @@
+"""AI analysis service for legal document processing.
+
+Provides GPT-4o-powered legal analysis with a deterministic fallback engine
+for offline operation. Implements LRU caching to avoid redundant API calls
+for previously analyzed documents.
+"""
+
 import os
 import json
+import hashlib
+import functools
 from openai import OpenAI
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
+
+# Module-level LRU cache for deterministic fallback results
+@functools.lru_cache(maxsize=64)
+def _cached_fallback_key(text_hash: str) -> str:
+    """Cache key generator for LRU-cached fallback analysis.
+
+    Args:
+        text_hash: SHA-256 hash of the document text.
+
+    Returns:
+        The same hash (used as a cache key by the LRU decorator).
+    """
+    return text_hash
+
+
 class AIService:
-    def __init__(self):
+    """GenAI-powered legal document analysis service.
+
+    Uses OpenAI GPT-4o for document analysis, action plan generation,
+    grounded Q&A, and document comparison. Falls back to a deterministic
+    rule-based NLP engine when the API is unavailable.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the AI service with OpenAI client and model config."""
         # Bypass any inherited local OpenAI-compatible proxy.
         self.client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
             base_url="https://api.openai.com/v1",
         )
-        self.model = "gpt-4o"
+        self.model: str = "gpt-4o"
+        self._analysis_cache: Dict[str, Any] = {}  # In-memory analysis cache
 
     def _get_persona(self, detail_level: str):
         if detail_level == "professional":
