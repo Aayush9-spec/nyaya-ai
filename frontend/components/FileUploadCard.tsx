@@ -63,6 +63,8 @@ export const FileUploadCard: React.FC<FileUploadCardProps> = ({
               ? 'border-blue-600 bg-blue-50/50 scale-[1.005]'
               : 'border-slate-300 hover:border-slate-400 bg-white'
           }`}
+          role="region"
+          aria-label="Upload PDF legal document for analysis"
         >
           {/* Upload Icon Container */}
           <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center mb-5 border border-slate-200">
@@ -78,13 +80,14 @@ export const FileUploadCard: React.FC<FileUploadCardProps> = ({
 
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            <label className="w-full sm:w-auto cursor-pointer text-center bg-slate-900 hover:bg-slate-800 text-white px-6 py-3.5 rounded-xl font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
+            <label className="w-full sm:w-auto cursor-pointer text-center bg-slate-900 hover:bg-slate-800 text-white px-6 py-3.5 rounded-xl font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95" role="button" tabIndex={0} aria-label="Browse and select a PDF document to upload">
               <FileText className="w-4 h-4 text-blue-400" /> {t.browse}
               <input
                 type="file"
                 className="hidden"
                 accept=".pdf"
                 onChange={handleInputChange}
+                aria-label="Select PDF document"
               />
             </label>
 
