@@ -1,3 +1,10 @@
+"""RAG vector store service for legal document retrieval.
+
+Manages FAISS-based vector indexes for document chunks and a global legal
+knowledge base. Supports dual embedding backends (OpenAI + HuggingFace)
+with automatic fallback to keyword-based search when embeddings fail.
+"""
+
 import os
 from typing import List, Dict, Any
 from langchain_openai import OpenAIEmbeddings
@@ -7,8 +14,17 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
+
 class VectorStoreService:
-    def __init__(self):
+    """FAISS-based vector store for RAG document retrieval.
+
+    Provides document indexing, knowledge base initialization, and
+    similarity search with automatic fallback to keyword matching.
+    Supports both OpenAI and local HuggingFace embedding models.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the vector store with dual embedding backends."""
         api_key = os.getenv("OPENAI_API_KEY")
         self.embeddings = OpenAIEmbeddings(
             openai_api_key=api_key or "placeholder",
