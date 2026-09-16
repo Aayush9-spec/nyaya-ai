@@ -31,13 +31,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80" role="banner">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <div className="flex items-center gap-8">
           <button
             onClick={() => setCurrentTab('dashboard')}
-            className="flex items-center gap-2.5 group focus:outline-none"
+            className="flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-lg"
+            aria-label="NyayaAI Home - Go to dashboard"
           >
             <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
               <Scale className="w-5 h-5 text-blue-400" />
@@ -53,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Desktop Navigation Items */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" role="navigation" aria-label="Main Navigation">
             {navItems.map((item) => {
               const active = currentTab === item.key;
               return (
@@ -65,6 +66,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       ? 'bg-slate-100 text-slate-900 font-bold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
+                  aria-current={active ? 'page' : undefined}
+                  aria-label={`Navigate to ${item.label}`}
                 >
                   {item.label}
                 </button>
