@@ -1,0 +1,23 @@
+{
+  "name": "nyaya-ai-monorepo",
+  "version": "1.0.0",
+  "description": "NyayaAI - GenAI Legal Assistance & Access Platform",
+  "private": true,
+  "scripts": {
+    "test": "npm --prefix frontend test && cd backend && python -m pytest tests/ -v",
+    "test:frontend": "npm --prefix frontend test",
+    "test:backend": "cd backend && python -m pytest tests/ -v --cov=app",
+    "lint": "npm --prefix frontend run lint",
+    "build": "npm --prefix frontend run build"
+  },
+  "keywords": [
+    "legal-tech",
+    "genai",
+    "promptwars",
+    "legal-assistance",
+    "contract-analysis",
+    "rag"
+  ],
+  "author": "NyayaAI Team",
+  "license": "MIT"
+}
