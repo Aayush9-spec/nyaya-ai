@@ -1,121 +1,165 @@
-# NyayaAI - Legal Action Navigator & Document Analysis Platform
+# NyayaAI — AI-Powered Legal Assistance & Access Platform
 
-NyayaAI is an AI-powered legal document analysis and action navigation platform. It enables users to upload, analyze, query, and compare legal documents (such as rental agreements, contracts, and legal notices) while generating plain-language summaries, risk assessments, actionable next steps, and grounded legal Q&A.
+> **PromptWars Virtual September — AI for Legal Assistance & Access**
+>
+> GenAI-powered solution that makes legal information and basic legal assistance more accessible by helping users understand, compare, and navigate legal documents and information.
+
+---
+
+## 🎯 Chosen Vertical
+
+**AI for Legal Assistance & Access** — Building a smart, dynamic assistant that simplifies complex legal documents, highlights risks, answers questions with cited sources, and generates actionable next steps for users.
+
+---
+
+## 🧠 Approach & Logic
+
+NyayaAI combines **Retrieval-Augmented Generation (RAG)** with a **deterministic fallback engine** to provide reliable legal document analysis even when external AI APIs are unavailable:
+
+1. **Document Ingestion**: PDF text extraction via PyPDF2 with automatic OCR fallback (Tesseract + pdf2image) for scanned documents
+2. **Vector Indexing**: Token-aware chunking → FAISS vector store with dual embedding support (OpenAI + HuggingFace `all-MiniLM-L6-v2`)
+3. **AI Analysis**: GPT-4o generates structured risk assessments, summaries, and action plans; a rule-based NLP engine provides offline fallback
+4. **Security Layer**: Regex-based prompt injection detection blocks adversarial queries before they reach the AI model
+5. **Grounded Q&A**: RAG pipeline retrieves relevant document chunks, grounds answers with page-level citations
+
+---
+
+## 🏗️ How the Solution Works
+
+### Architecture
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                     Frontend (Next.js + React)                 │
+│  Dashboard │ File Upload │ Analysis │ Compare │ Action Plan    │
+│  Q&A Chat  │ Risk Radar  │ Evaluation │ Export                 │
+└──────────────────────────┬────────────────────────────────────┘
+                           │ REST API (FastAPI)
+┌──────────────────────────┴────────────────────────────────────┐
+│                        Backend (Python)                        │
+│  ┌────────────┐ ┌────────────────┐ ┌───────────┐ ┌──────────┐│
+│  │ Security   │ │ DocumentService│ │ AIService │ │VectorStore││
+│  │ Service    │ │   + OCR        │ │ +Fallback │ │  +FAISS  ││
+│  └────────────┘ └────────────────┘ └───────────┘ └──────────┘│
+│                           │                                    │
+│              ┌────────────┴────────────┐                      │
+│              │  GPT-4o / Fallback NLP  │                      │
+│              │  + Legal Knowledge Base  │                      │
+│              └─────────────────────────┘                      │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### Problem Statement Alignment
+
+| Problem Statement Use Case | NyayaAI Feature | Endpoint |
+|:---|:---|:---|
+| Simplifying complex legal documents | Plain-language summary with risk scores | `POST /analyze` |
+| Comparing contracts, agreements, or policies | Side-by-side clause diff | `POST /compare` |
+| Highlighting clauses, obligations, risks | Risk Radar with severity tags | `POST /analyze` |
+| Answering questions based on legal documents | RAG Q&A with citations | `POST /ask` |
+| Understanding options and next steps | Step-by-step Action Plan | `POST /action-plan` |
+| Generating summaries, checklists, actionable outputs | Evidence checklist, legal notice draft | Frontend |
+| Preparing information for a legal professional | Lawyer questions, notice draft | Frontend |
 
 ---
 
 ## 🌟 Key Features
 
-- 📑 **Legal Document Analysis**: Upload PDF agreements to extract key clauses, identify hidden risks/liabilities, and generate multi-lingual summaries in simple or detailed legal terms.
-- 📋 **Step-by-Step Action Plans**: Translate complex legal jargon into actionable checklists, key deadlines, required documentation, and legal recourse options.
-- 💬 **Grounded Legal Q&A (RAG)**: Chat with uploaded documents powered by vector embeddings and context retrieval with built-in prompt injection guardrails.
-- ⚖️ **Document Comparison**: Compare two legal PDFs side-by-side to identify key differences, additions, and clause variations.
-- 🛡️ **Security & Guardrails**: Built-in prompt injection detection and security controls to block malicious inputs and preserve user privacy.
-- 📊 **Evaluation Dashboard**: Transparency metrics tracking grounded Q&A accuracy, citation precision, risk detection recall, and security benchmark scores.
+- 📑 **Legal Document Analysis**: Upload PDF agreements to extract key clauses, identify hidden risks/liabilities, and generate multi-lingual summaries in simple or detailed legal terms
+- 📋 **Step-by-Step Action Plans**: Translate complex legal jargon into actionable checklists, key deadlines, required documentation, and legal recourse options
+- 💬 **Grounded Legal Q&A (RAG)**: Chat with uploaded documents powered by vector embeddings and context retrieval with built-in prompt injection guardrails
+- ⚖️ **Document Comparison**: Compare two legal PDFs side-by-side to identify key differences, additions, and clause variations
+- 🛡️ **Security & Guardrails**: Built-in prompt injection detection and OWASP security headers
+- 📊 **Evaluation Dashboard**: Live RAG metrics tracking accuracy, citation precision, and security benchmarks
+- 🔍 **OCR Support**: Scanned PDF processing via Tesseract + pdf2image
+- 📥 **Export**: One-click PDF/Markdown export of analysis reports and legal notice drafts
+- 🌐 **Multi-language**: English, Hindi, and Spanish support
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🏗️ Tech Stack
 
-```
-nyaya_ai/
-├── backend/            # FastAPI REST API & AI/RAG Services
-│   ├── app/
-│   │   ├── api/        # API Routers & Controllers
-│   │   ├── core/       # Configurations & Settings
-│   │   ├── services/   # AI, Document Processing, Vector Store, Security
-│   │   └── main.py     # FastAPI Application & Endpoints
-│   ├── data/           # Legal Knowledge Base & Data Files
-│   └── requirements.txt
-└── frontend/           # Next.js App Router & Responsive UI
-    ├── app/            # Pages & Routes (Main Dashboard, Evaluation)
-    ├── components/     # Reusable UI Components
-    ├── lib/            # Helper Utilities & API Integration
-    └── package.json
-```
-
-### Technologies Used
-
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/), Python 3.10+, [Uvicorn](https://www.uvicorn.org/), [LangChain](https://www.langchain.com/), OpenAI API, Anthropic API, PyPDF2, Vector Store.
-- **Frontend**: [Next.js](https://nextjs.org/) (App Router), React 18, TypeScript, [Tailwind CSS](https://tailwindcss.com/), Framer Motion, Lucide Icons.
+| Layer | Technology |
+|:---|:---|
+| **Frontend** | Next.js (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion |
+| **Backend** | FastAPI, Python 3.10+, Uvicorn |
+| **AI/ML** | OpenAI GPT-4o, LangChain, FAISS, HuggingFace Embeddings |
+| **OCR** | Tesseract (pytesseract), pdf2image |
+| **Security** | Prompt injection detection, OWASP headers, CSP, HSTS |
+| **Testing** | Pytest (backend), GitHub Actions CI |
+| **Deployment** | Vercel (frontend) |
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Python**: `3.10+` installed
-- **Node.js**: `18.x` or `20.x` and `npm` installed
-- **API Keys**: OpenAI API Key (or Anthropic API Key)
+- **Python**: `3.10+`
+- **Node.js**: `18.x` or `20.x`
+- **API Key**: OpenAI API Key (optional — fallback engine works offline)
+
+### Backend Setup
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your OPENAI_API_KEY
+
+# Start server
+uvicorn app.main:app --reload --port 8000
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000` in your browser.
+
+### Run Tests
+
+```bash
+# Backend tests
+cd backend && python -m pytest tests/ -v
+
+# Frontend build verification
+cd frontend && npm run build
+```
 
 ---
 
-### 1. Backend Setup
-
-1. **Navigate to the backend directory**:
-   ```bash
-   cd backend
-   ```
-
-2. **Create and activate a virtual environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment variables**:
-   Create a `.env` file in the `backend/` directory:
-   ```env
-   OPENAI_API_KEY=your_openai_api_key_here
-   # Optional: ANTHROPIC_API_KEY=your_anthropic_api_key_here
-   ```
-
-5. **Start the FastAPI server**:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
-   The backend API will be available at `http://localhost:8000`. You can explore interactive API docs at `http://localhost:8000/docs`.
-
----
-
-### 2. Frontend Setup
-
-1. **Navigate to the frontend directory**:
-   ```bash
-   cd frontend
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Start the Next.js development server**:
-   ```bash
-   npm run dev
-   ```
-
-4. **Access the web application**:
-   Open your browser and navigate to `http://localhost:3000`.
-
----
-
-## 🧪 API Endpoints Overview
+## 🧪 API Endpoints
 
 | Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/analyze` | Upload a PDF document for analysis and summary generation. |
-| `POST` | `/action-plan` | Generate an actionable step-by-step legal plan from document analysis. |
-| `POST` | `/ask` | Ask questions grounded in uploaded document context (RAG). |
-| `POST` | `/compare` | Upload two PDF documents for side-by-side comparative analysis. |
-| `GET` | `/evaluate` | Retrieve system evaluation metrics and security test benchmark results. |
-| `GET` | `/health` | Health check and knowledge base status endpoint. |
+|:---|:---|:---|
+| `GET` | `/` | Welcome endpoint |
+| `GET` | `/health` | Health check and KB readiness |
+| `POST` | `/analyze` | Upload a PDF for analysis, risk scoring, and summary |
+| `POST` | `/action-plan` | Generate step-by-step legal action plan |
+| `POST` | `/ask` | Grounded RAG Q&A with citation references |
+| `POST` | `/compare` | Side-by-side PDF comparison |
+| `GET` | `/evaluate` | Live RAG and security evaluation metrics |
+| `POST` | `/evaluate/run` | Run dynamic RAG benchmark audit |
+
+Interactive API docs: `http://localhost:8000/docs`
+
+---
+
+## ⚠️ Assumptions
+
+1. **Information, not legal advice**: NyayaAI provides information and assistance to help users understand legal documents. It does **not** replace professional legal advice.
+2. **PDF format**: Documents must be in PDF format (native text or scanned).
+3. **Language support**: Currently optimized for English, Hindi, and Spanish legal documents.
+4. **API availability**: The system operates with a deterministic fallback when OpenAI API is unavailable.
 
 ---
 
