@@ -8,13 +8,13 @@ anthropic
 langchain
 langchain-openai
 langchain-community
+langchain-core
+faiss-cpu
 psycopg2-binary
 pgvector
 python-dotenv
 PyPDF2
 tiktoken
-sentence-transformers
 pytesseract
 pdf2image
 Pillow
-scikit-learn
