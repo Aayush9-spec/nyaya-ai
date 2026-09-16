@@ -40,11 +40,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   ];
 
   return (
-    <div className="space-y-8 py-6">
+    <section className="space-y-8 py-6" aria-label="Legal Document Dashboard" role="region">
       {/* Top Header Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t.title}</h2>
+          <h1 id="dashboard-title" className="text-2xl font-black text-slate-900 tracking-tight">{t.title}</h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">{t.subtitle}</p>
         </div>
         <button
@@ -218,6 +218,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
