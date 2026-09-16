@@ -11,4 +11,6 @@ venv/
 *.tsbuildinfo
 .DS_Store
 ._*
+.kilo/
+.pytest_cache/
 
