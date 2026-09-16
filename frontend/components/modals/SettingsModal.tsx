@@ -18,7 +18,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
     if (!isOpen) return;
     async function fetchEval() {
       try {
-        const res = await fetch('http://localhost:8000/evaluate');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/evaluate`);
         const json = await res.json();
         setData(json);
       } catch (e) {

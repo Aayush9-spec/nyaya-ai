@@ -97,7 +97,7 @@ export default function NyayaAI() {
 
     try {
       const res = await fetch(
-        `http://localhost:8000/analyze?language=${language}&detail_level=${detailLevel}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/analyze?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
           body: formData,
@@ -145,7 +145,7 @@ export default function NyayaAI() {
     setErrorMsg(null);
     try {
       const res = await fetch(
-        `http://localhost:8000/action-plan?language=${language}&detail_level=${detailLevel}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/action-plan?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -176,7 +176,7 @@ export default function NyayaAI() {
       formData.append('file1', file);
       formData.append('file2', file2);
 
-      const res = await fetch(`http://localhost:8000/compare?language=${language}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/compare?language=${language}`, {
         method: 'POST',
         body: formData,
       });
@@ -198,7 +198,7 @@ export default function NyayaAI() {
     setErrorMsg(null);
     try {
       const res = await fetch(
-        `http://localhost:8000/ask?language=${language}&detail_level=${detailLevel}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/ask?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
