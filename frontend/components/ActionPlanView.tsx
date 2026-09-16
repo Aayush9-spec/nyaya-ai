@@ -149,7 +149,7 @@ SINCERELY,
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label={`Evidence checklist progress: ${progressPercent}%`}>
             <div
               className="bg-blue-600 h-full transition-all duration-300 rounded-full"
               style={{ width: `${progressPercent}%` }}
@@ -163,6 +163,11 @@ SINCERELY,
                 <div
                   key={i}
                   onClick={() => toggleCheck(i)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCheck(i); } }}
+                  role="checkbox"
+                  aria-checked={isDone}
+                  aria-label={`Evidence item: ${item}`}
+                  tabIndex={0}
                   className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none ${
                     isDone
                       ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
