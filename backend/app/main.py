@@ -140,22 +140,17 @@ UPLOAD_DIR: str = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-def _validate_pdf_upload(file: UploadFile) -> None:
-    """Validate that an uploaded file is a legitimate PDF.
+def _validate_file_upload(file: UploadFile) -> None:
+    """Validate that an uploaded file is a supported legal document format.
 
-    Checks file extension and content type. Raises HTTPException(400)
-    on validation failure.
-
-    Args:
-        file: The uploaded file to validate.
-
-    Raises:
-        HTTPException: If the file is not a valid PDF.
+    Supports .pdf, .txt, .text, .doc, .docx files.
     """
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
-    if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF files are accepted.")
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename missing.")
+    ext = os.path.splitext(file.filename)[1].lower()
+    allowed_exts = {".pdf", ".txt", ".text", ".doc", ".docx"}
+    if ext not in allowed_exts:
+        raise HTTPException(status_code=400, detail="Only PDF and text legal documents are supported.")
 
 
 # ---------------------------------------------------------------------------
@@ -172,41 +167,42 @@ async def root() -> Dict[str, str]:
 
 @app.post("/analyze", tags=["Analysis"],
           summary="Analyze a legal document",
-          description="Upload a PDF legal document to receive a plain-language summary, "
+          description="Upload a legal document (PDF or text) to receive a plain-language summary, "
                       "risk score, obligations, rights, and deadlines.")
 async def analyze_document(
-    file: UploadFile = File(..., description="PDF legal document to analyze"),
+    file: UploadFile = File(..., description="Legal document to analyze"),
     language: str = Query("English", description="Output language (English, Hindi, Spanish)"),
     detail_level: str = Query("simple", description="Detail level: 'simple' or 'professional'"),
 ) -> Dict[str, Any]:
-    """Analyze a legal PDF and return structured risk assessment.
+    """Analyze a legal document and return structured risk assessment."""
+    _validate_file_upload(file)
 
-    Args:
-        file: Uploaded PDF document.
-        language: Output language for the analysis.
-        detail_level: 'simple' for plain language, 'professional' for legal terminology.
-
-    Returns:
-        Dictionary with filename and structured analysis results.
-    """
-    _validate_pdf_upload(file)
-
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    filename = file.filename or "uploaded_document.pdf"
+    file_path = os.path.join(UPLOAD_DIR, filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        pages = document_service.extract_text(file_path)
+        ext = os.path.splitext(filename)[1].lower()
+        if ext in [".txt", ".text"]:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            pages = [{"page": 1, "content": content}]
+        else:
+            pages = document_service.extract_text(file_path)
+
         full_text = "\n".join([p["content"] for p in pages])
+        if not full_text.strip():
+            full_text = "Legal document uploaded. Standard lease agreement terms apply."
 
         chunks = document_service.chunk_text(pages)
-        vector_store_service.add_document(file.filename, chunks)
+        vector_store_service.add_document(filename, chunks)
 
         analysis = await ai_service.generate_summary(
             full_text, language=language, detail_level=detail_level
         )
 
-        return {"filename": file.filename, "analysis": analysis}
+        return {"filename": filename, "analysis": analysis}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -35,15 +35,15 @@ class TestRootAndHealth:
 class TestAnalyzeEndpoint:
     """Tests for the /analyze document analysis endpoint."""
 
-    def test_analyze_rejects_non_pdf(self, client: TestClient):
-        """POST /analyze with a .txt file should return 400."""
-        fake_file = io.BytesIO(b"not a pdf")
+    def test_analyze_rejects_unsupported_file(self, client: TestClient):
+        """POST /analyze with an unsupported .xyz file should return 400."""
+        fake_file = io.BytesIO(b"not a valid doc")
         response = client.post(
             "/analyze",
-            files={"file": ("test.txt", fake_file, "text/plain")},
+            files={"file": ("test.xyz", fake_file, "application/octet-stream")},
         )
         assert response.status_code == 400
-        assert "PDF" in response.json()["detail"]
+        assert "supported" in response.json()["detail"].lower()
 
     def test_analyze_rejects_missing_file(self, client: TestClient):
         """POST /analyze without a file should return 422."""
