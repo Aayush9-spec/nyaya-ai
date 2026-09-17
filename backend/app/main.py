@@ -36,8 +36,15 @@ from typing import Dict, Any
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-MAX_UPLOAD_SIZE_BYTES: int = 20 * 1024 * 1024  # 20 MB
-ALLOWED_MIME_TYPES: set = {"application/pdf"}
+ALLOWED_MIME_TYPES: set = {
+    "application/pdf",
+    "application/x-pdf",
+    "application/acrobat",
+    "applications/vnd.pdf",
+    "text/pdf",
+    "application/octet-stream",
+    "binary/octet-stream",
+}
 
 
 # ---------------------------------------------------------------------------

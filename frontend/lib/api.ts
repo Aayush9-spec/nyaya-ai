@@ -22,19 +22,29 @@ export const getApiUrl = (): string => {
 };
 
 /**
- * Robust fetch wrapper with automatic retries for server cold starts.
+ * Robust fetch wrapper with automatic retries for server cold starts and stream cloning.
  * Render free tier instances spin down after inactivity and take up to 30-50s to wake up.
  */
 export const fetchWithRetry = async (
   url: string,
   options: RequestInit = {},
   retries: number = 3,
-  delayMs: number = 4000,
+  delayMs: number = 3000,
   onRetry?: (attempt: number) => void
 ): Promise<Response> => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(url, options);
+      // Re-create FormData if body is a FormData instance so streams aren't consumed across retries
+      let currentOptions: RequestInit = { ...options };
+      if (options.body && typeof FormData !== 'undefined' && options.body instanceof FormData) {
+        const freshFormData = new FormData();
+        options.body.forEach((value, key) => {
+          freshFormData.append(key, value);
+        });
+        currentOptions.body = freshFormData;
+      }
+
+      const response = await fetch(url, currentOptions);
       if (response.ok || response.status < 500) {
         return response;
       }
