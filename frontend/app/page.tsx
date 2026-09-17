@@ -21,7 +21,7 @@ import { HowItWorksModal } from '../components/HowItWorksModal';
 import { SettingsModal } from '../components/modals/SettingsModal';
 import { Language, translations } from '../lib/translations';
 import { FileText, ArrowLeft, Download, Share2, AlertCircle } from 'lucide-react';
-import { getApiUrl } from '../lib/api';
+import { getApiUrl, fetchWithRetry } from '../lib/api';
 
 export default function NyayaAI() {
   const [currentTab, setCurrentTab] = useState<
@@ -97,7 +97,7 @@ export default function NyayaAI() {
     formData.append('file', uploadedFile);
 
     try {
-      const res = await fetch(
+      const res = await fetchWithRetry(
         `${getApiUrl()}/analyze?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
@@ -145,7 +145,7 @@ export default function NyayaAI() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(
+      const res = await fetchWithRetry(
         `${getApiUrl()}/action-plan?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
@@ -177,7 +177,7 @@ export default function NyayaAI() {
       formData.append('file1', file);
       formData.append('file2', file2);
 
-      const res = await fetch(`${getApiUrl()}/compare?language=${language}`, {
+      const res = await fetchWithRetry(`${getApiUrl()}/compare?language=${language}`, {
         method: 'POST',
         body: formData,
       });
@@ -198,7 +198,7 @@ export default function NyayaAI() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(
+      const res = await fetchWithRetry(
         `${getApiUrl()}/ask?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
