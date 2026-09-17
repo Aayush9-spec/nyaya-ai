@@ -120,17 +120,12 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # Middleware: Security headers
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Middleware: CORS — restricted to known deployment origins
+# Middleware: CORS — allow all Vercel preview/production deployments and local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://frontend-henna-seven-yf2mqj3r1g.vercel.app",
-        "https://nyaya-ai.vercel.app",
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 

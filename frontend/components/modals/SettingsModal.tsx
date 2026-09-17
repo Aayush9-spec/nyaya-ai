@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { X, Settings, Activity, ShieldCheck, Zap, Award, Server } from 'lucide-react';
-import { Language, translations } from '../../lib/translations';
+import { getApiUrl } from '../../lib/api';
+import { Language } from '../../lib/translations';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
     if (!isOpen) return;
     async function fetchEval() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/evaluate`);
+        const res = await fetch(`${getApiUrl()}/evaluate`);
         const json = await res.json();
         setData(json);
       } catch (e) {

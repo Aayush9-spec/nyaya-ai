@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Activity, ShieldCheck, Zap, BarChart3, ArrowLeft, Lock, Award, Server } from 'lucide-react';
 import Link from 'next/link';
+import { getApiUrl } from '../../lib/api';
 
 export default function EvaluationPage() {
   const [data, setData] = useState<any>(null);
@@ -11,7 +12,7 @@ export default function EvaluationPage() {
   useEffect(() => {
     async function fetchEval() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/evaluate`);
+        const res = await fetch(`${getApiUrl()}/evaluate`);
         const json = await res.json();
         setData(json);
       } catch (e) {
@@ -37,8 +38,8 @@ export default function EvaluationPage() {
   const runBenchmark = async () => {
     setRunningBenchmark(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/evaluate/run`, { method: 'POST' });
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/evaluate`);
+      await fetch(`${getApiUrl()}/evaluate/run`, { method: 'POST' });
+      const res = await fetch(`${getApiUrl()}/evaluate`);
       const json = await res.json();
       setData(json);
     } catch (e) {

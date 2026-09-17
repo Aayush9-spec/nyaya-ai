@@ -21,6 +21,7 @@ import { HowItWorksModal } from '../components/HowItWorksModal';
 import { SettingsModal } from '../components/modals/SettingsModal';
 import { Language, translations } from '../lib/translations';
 import { FileText, ArrowLeft, Download, Share2, AlertCircle } from 'lucide-react';
+import { getApiUrl } from '../lib/api';
 
 export default function NyayaAI() {
   const [currentTab, setCurrentTab] = useState<
@@ -97,7 +98,7 @@ export default function NyayaAI() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/analyze?language=${language}&detail_level=${detailLevel}`,
+        `${getApiUrl()}/analyze?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
           body: formData,
@@ -145,7 +146,7 @@ export default function NyayaAI() {
     setErrorMsg(null);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/action-plan?language=${language}&detail_level=${detailLevel}`,
+        `${getApiUrl()}/action-plan?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -176,7 +177,7 @@ export default function NyayaAI() {
       formData.append('file1', file);
       formData.append('file2', file2);
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/compare?language=${language}`, {
+      const res = await fetch(`${getApiUrl()}/compare?language=${language}`, {
         method: 'POST',
         body: formData,
       });
@@ -198,7 +199,7 @@ export default function NyayaAI() {
     setErrorMsg(null);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/ask?language=${language}&detail_level=${detailLevel}`,
+        `${getApiUrl()}/ask?language=${language}&detail_level=${detailLevel}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
