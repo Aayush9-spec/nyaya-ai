@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm run build",
+  "buildCommand": "cd frontend 2>/dev/null || true; npm run build",
   "outputDirectory": "frontend/.next",
   "framework": "nextjs"
 }
