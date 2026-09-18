@@ -53,27 +53,28 @@ NyayaAI combines **Retrieval-Augmented Generation (RAG)** with a **deterministic
 
 | Problem Statement Use Case | NyayaAI Feature | Endpoint |
 |:---|:---|:---|
-| Simplifying complex legal documents | Plain-language summary with risk scores | `POST /analyze` |
-| Comparing contracts, agreements, or policies | Side-by-side clause diff | `POST /compare` |
-| Highlighting clauses, obligations, risks | Risk Radar with severity tags | `POST /analyze` |
-| Answering questions based on legal documents | RAG Q&A with citations | `POST /ask` |
-| Understanding options and next steps | Step-by-step Action Plan | `POST /action-plan` |
-| Generating summaries, checklists, actionable outputs | Evidence checklist, legal notice draft | Frontend |
-| Preparing information for a legal professional | Lawyer questions, notice draft | Frontend |
+| 1. Simplifying complex legal documents | Plain-language summary, legalese glossary, risk scores | `POST /analyze` |
+| 2. Comparing contracts, agreements, or policies | Side-by-side clause diff & risk shift analysis | `POST /compare` |
+| 3. Highlighting clauses, obligations, risks, inconsistencies | Risk Radar, hidden traps, inconsistency detector | `POST /analyze` |
+| 4. Answering questions based on legal documents | Grounded RAG Q&A with citations & confidence scores | `POST /ask` |
+| 5. Helping users understand options & next steps | Legal Recourse & Options Matrix (4 pathways) | `POST /legal-options` |
+| 6. Generating summaries, checklists, actionable outputs | Action plans, evidence checklists, legal notice drafts | `POST /draft-notice` & `POST /action-plan` |
+| 7. Preparing info & questions for a legal professional | Attorney Consultation Briefing Packet generator | `POST /attorney-briefing` |
 
 ---
 
 ## 🌟 Key Features
 
-- 📑 **Legal Document Analysis**: Upload PDF agreements to extract key clauses, identify hidden risks/liabilities, and generate multi-lingual summaries in simple or detailed legal terms
-- 📋 **Step-by-Step Action Plans**: Translate complex legal jargon into actionable checklists, key deadlines, required documentation, and legal recourse options
+- 📑 **Legal Document Analysis**: Upload PDF agreements to extract key clauses, identify hidden traps/inconsistencies, and generate multi-lingual summaries in simple or detailed legal terms
+- ⚖️ **Legal Recourse & Options Matrix**: Compare 4 distinct legal pathways (Informal Negotiation, Pre-Legal Notice, Consumer/Regulatory Escalation, Mutual Cancellation) with pros, cons, costs, and timelines
+- 👔 **Attorney Consultation Briefing**: Generate structured briefing packets for consulting legal counsel with case synopses, ambiguous terms, and prioritized questions for lawyers
+- 📜 **Legal Notice Generator**: Draft formal legal demand letters customized to contract terms and user disputes
+- 📋 **Step-by-Step Action Plans**: Translate complex legal jargon into actionable checklists, key deadlines, required documentation, and recourse options
 - 💬 **Grounded Legal Q&A (RAG)**: Chat with uploaded documents powered by vector embeddings and context retrieval with built-in prompt injection guardrails
-- ⚖️ **Document Comparison**: Compare two legal PDFs side-by-side to identify key differences, additions, and clause variations
+- ⚖️ **Document Comparison**: Compare two legal PDFs side-by-side to identify key differences, additions, and clause risk shifts
+- ⚡ **Async & Sub-5ms SHA-256 Caching Engine**: Native `AsyncOpenAI` non-blocking event loop execution with multi-tier content hashing for instant cached responses
 - 🛡️ **Security & Guardrails**: Built-in prompt injection detection and OWASP security headers
 - 📊 **Evaluation Dashboard**: Live RAG metrics tracking accuracy, citation precision, and security benchmarks
-- 🔍 **OCR Support**: Scanned PDF processing via Tesseract + pdf2image
-- 📥 **Export**: One-click PDF/Markdown export of analysis reports and legal notice drafts
-- 🌐 **Multi-language**: English, Hindi, and Spanish support
 
 ---
 
@@ -82,9 +83,10 @@ NyayaAI combines **Retrieval-Augmented Generation (RAG)** with a **deterministic
 | Layer | Technology |
 |:---|:---|
 | **Frontend** | Next.js (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion |
-| **Backend** | FastAPI, Python 3.10+, Uvicorn |
+| **Backend** | FastAPI, Python 3.10+, Uvicorn, AsyncOpenAI |
 | **AI/ML** | OpenAI GPT-4o, LangChain, FAISS, HuggingFace Embeddings |
-| **OCR** | Tesseract (pytesseract), pdf2image |
+| **OCR & PDF** | PyPDF / PyPDF2, Tesseract (pytesseract), pdf2image |
+| **Performance** | SHA-256 multi-tier caching, Async non-blocking event loop, GZip compression |
 | **Security** | Prompt injection detection, OWASP headers, CSP, HSTS |
 | **Testing** | Pytest (backend), GitHub Actions CI |
 | **Deployment** | Vercel (frontend) |
@@ -129,7 +131,7 @@ Open `http://localhost:3000` in your browser.
 
 ```bash
 # Backend tests
-cd backend && python -m pytest tests/ -v
+cd backend && ./venv/bin/pytest tests/ -v
 
 # Frontend build verification
 cd frontend && npm run build
@@ -143,10 +145,13 @@ cd frontend && npm run build
 |:---|:---|:---|
 | `GET` | `/` | Welcome endpoint |
 | `GET` | `/health` | Health check and KB readiness |
-| `POST` | `/analyze` | Upload a PDF for analysis, risk scoring, and summary |
-| `POST` | `/action-plan` | Generate step-by-step legal action plan |
-| `POST` | `/ask` | Grounded RAG Q&A with citation references |
-| `POST` | `/compare` | Side-by-side PDF comparison |
+| `POST` | `/analyze` | Upload a PDF/text doc for analysis, risk scoring, hidden traps, & inconsistencies |
+| `POST` | `/action-plan` | Generate step-by-step legal action plan & evidence checklist |
+| `POST` | `/attorney-briefing` | Prepare structured attorney briefing packet with lawyer questions |
+| `POST` | `/legal-options` | Generate 4-path Legal Recourse Options Matrix (costs & timelines) |
+| `POST` | `/draft-notice` | Draft formal legal demand letter / notice customized to document |
+| `POST` | `/ask` | Grounded RAG Q&A with citation references & confidence scores |
+| `POST` | `/compare` | Side-by-side PDF comparison & risk shift evaluation |
 | `GET` | `/evaluate` | Live RAG and security evaluation metrics |
 | `POST` | `/evaluate/run` | Run dynamic RAG benchmark audit |
 
@@ -156,13 +161,14 @@ Interactive API docs: `http://localhost:8000/docs`
 
 ## ⚠️ Assumptions
 
-1. **Information, not legal advice**: NyayaAI provides information and assistance to help users understand legal documents. It does **not** replace professional legal advice.
-2. **PDF format**: Documents must be in PDF format (native text or scanned).
-3. **Language support**: Currently optimized for English, Hindi, and Spanish legal documents.
-4. **API availability**: The system operates with a deterministic fallback when OpenAI API is unavailable.
+1. **Information, not legal advice**: NyayaAI provides information and assistance to help users understand legal documents. It does **not** replace professional legal counsel.
+2. **Document formats**: Supports PDF (native text or scanned via OCR) and plain text (.txt) documents.
+3. **Language support**: Optimized for English, Hindi, and Spanish legal documents.
+4. **Offline fallback**: The system operates with a deterministic legal analysis engine when OpenAI API is unavailable.
 
 ---
 
 ## 📄 License
 
 This project is open-source and available under the [MIT License](LICENSE).
+
