@@ -150,3 +150,35 @@ class TestSecurityHeaders:
         assert headers["x-content-type-options"] == "nosniff"
         assert "x-frame-options" in headers
         assert "referrer-policy" in headers
+
+
+class TestNewEndpoints:
+    """Tests for problem statement endpoints: attorney briefing, legal options, and notice drafting."""
+
+    def test_attorney_briefing_missing_file(self, client: TestClient):
+        """POST /attorney-briefing for unknown file should return 404."""
+        response = client.post(
+            "/attorney-briefing",
+            params={"filename": "missing.pdf"},
+            json={"summary": "test"}
+        )
+        assert response.status_code == 404
+
+    def test_legal_options_missing_file(self, client: TestClient):
+        """POST /legal-options for unknown file should return 404."""
+        response = client.post(
+            "/legal-options",
+            params={"filename": "missing.pdf"},
+            json={"summary": "test"}
+        )
+        assert response.status_code == 404
+
+    def test_draft_notice_missing_file(self, client: TestClient):
+        """POST /draft-notice for unknown file should return 404."""
+        response = client.post(
+            "/draft-notice",
+            params={"filename": "missing.pdf"},
+            json={"summary": "test"}
+        )
+        assert response.status_code == 404
+

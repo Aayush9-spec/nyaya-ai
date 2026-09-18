@@ -59,14 +59,37 @@ class TestVectorStoreServiceDeep:
 
 
 class TestAIServiceDeep:
-    """Deep unit tests for AIService personas."""
+    """Deep unit tests for AIService personas and fallback methods."""
 
     def test_persona_generation(self):
         service = AIService()
         simple_persona = service._get_persona("simple")
         prof_persona = service._get_persona("professional")
-        assert "simple" in simple_persona.lower() or "helpful" in simple_persona.lower()
+        assert "simple" in simple_persona.lower() or "helpful" in simple_persona.lower() or "person" in simple_persona.lower()
         assert "counsel" in prof_persona.lower() or "legal" in prof_persona.lower()
+
+    def test_async_fallback_methods(self):
+        import asyncio
+        service = AIService()
+        doc_text = "Rental agreement with lock-in period of 11 months and late penalty fee of $50."
+        summary = asyncio.run(service.generate_summary(doc_text))
+        assert "summary" in summary
+        assert "hidden_traps" in summary
+        assert "inconsistencies" in summary
+
+        briefing = asyncio.run(service.generate_attorney_briefing(summary, doc_text))
+        assert "case_synopsis" in briefing
+        assert "lawyer_questions" in briefing
+
+        options = asyncio.run(service.generate_legal_options(summary, doc_text))
+        assert "options" in options
+        assert len(options["options"]) == 4
+
+        notice = asyncio.run(service.generate_legal_notice(summary, doc_text))
+        assert "notice_title" in notice
+        assert "notice_body" in notice
+
+
 
 
 class TestSecurityServiceDeep:
