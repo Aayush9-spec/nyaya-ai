@@ -4,6 +4,9 @@
   "description": "NyayaAI - GenAI Legal Assistance & Access Platform",
   "private": true,
   "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && ./venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
     "test": "npm --prefix frontend test && cd backend && python -m pytest tests/ -v",
     "test:frontend": "npm --prefix frontend test",
     "test:backend": "cd backend && python -m pytest tests/ -v --cov=app",
