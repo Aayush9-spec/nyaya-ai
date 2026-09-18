@@ -108,18 +108,22 @@ app = FastAPI(
     title="NyayaAI — AI-Powered Legal Assistance & Access",
     description=(
         "GenAI-powered platform that makes legal information accessible. "
-        "Simplify complex documents, compare contracts, highlight risks, "
-        "answer questions with cited sources, and generate actionable next steps. "
+        "Simplify complex documents, compare contracts, highlight risks & inconsistencies, "
+        "answer questions with cited sources, compare legal recourse options, "
+        "draft formal legal notices, and prepare attorney consultation briefings. "
         "Built for the PromptWars Virtual September hackathon — "
         "'AI for Legal Assistance & Access' challenge."
     ),
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
     openapi_tags=[
-        {"name": "Analysis", "description": "Document analysis, risk scoring, and simplification"},
-        {"name": "Comparison", "description": "Side-by-side contract/policy comparison"},
-        {"name": "Q&A", "description": "Grounded Retrieval-Augmented Generation Q&A with citations"},
-        {"name": "Action Plan", "description": "Step-by-step legal action plans and checklists"},
+        {"name": "Analysis", "description": "Document analysis, risk scoring, hidden traps, and clause inconsistency detection (Use Cases 1 & 3)"},
+        {"name": "Comparison", "description": "Side-by-side contract/policy comparison with risk shift evaluation (Use Case 2)"},
+        {"name": "Q&A", "description": "Grounded Retrieval-Augmented Generation Q&A with citations (Use Case 4)"},
+        {"name": "Action Plan", "description": "Step-by-step legal action plans and evidence checklists (Use Cases 5 & 6)"},
+        {"name": "Legal Options", "description": "Legal Recourse & Options Matrix comparing pathways, costs, and timelines (Use Case 5)"},
+        {"name": "Attorney Briefing", "description": "Structured briefing packet for consulting a legal professional (Use Case 7)"},
+        {"name": "Notice Drafting", "description": "Automated Legal Notice / Formal Communication generator (Use Cases 6 & 7)"},
         {"name": "Evaluation", "description": "Live RAG metrics and security audit"},
         {"name": "System", "description": "Health checks and system status"},
     ],
@@ -176,7 +180,7 @@ async def root() -> Dict[str, str]:
 @app.post("/analyze", tags=["Analysis"],
           summary="Analyze a legal document",
           description="Upload a legal document (PDF or text) to receive a plain-language summary, "
-                      "risk score, obligations, rights, and deadlines.")
+                      "risk score, obligations, rights, hidden traps, and clause inconsistencies.")
 async def analyze_document(
     file: UploadFile = File(..., description="Legal document to analyze"),
     language: str = Query("English", description="Output language (English, Hindi, Spanish)"),
@@ -225,17 +229,7 @@ async def get_action_plan(
     language: str = Query("English"),
     detail_level: str = Query("simple"),
 ) -> Dict[str, Any]:
-    """Generate an actionable legal plan based on prior analysis.
-
-    Args:
-        filename: Name of the previously uploaded PDF.
-        analysis: Prior analysis results from /analyze.
-        language: Output language.
-        detail_level: 'simple' or 'professional'.
-
-    Returns:
-        Action plan with steps, evidence checklist, and lawyer questions.
-    """
+    """Generate an actionable legal plan based on prior analysis."""
     file_path = os.path.join(UPLOAD_DIR, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found.")
@@ -251,6 +245,90 @@ async def get_action_plan(
         return action_plan
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/attorney-briefing", tags=["Attorney Briefing"],
+          summary="Generate an attorney consultation briefing packet",
+          description="Prepare a structured briefing document detailing case synopsis, "
+                      "high-risk exposure clauses, ambiguous terms, prioritized questions for legal counsel, "
+                      "and required evidentiary attachments (Problem Statement Use Case 7).")
+async def get_attorney_briefing(
+    filename: str,
+    analysis: dict,
+    language: str = Query("English"),
+    detail_level: str = Query("simple"),
+) -> Dict[str, Any]:
+    """Generate a structured briefing document for legal counsel consultation."""
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    try:
+        pages = document_service.extract_text(file_path)
+        full_text = "\n".join([p["content"] for p in pages])
+
+        briefing = await ai_service.generate_attorney_briefing(
+            analysis, full_text, language=language, detail_level=detail_level
+        )
+        return briefing
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/legal-options", tags=["Legal Options"],
+          summary="Generate a legal recourse options matrix",
+          description="Compare 4 distinct legal pathways (Informal Negotiation, Pre-Legal Notice, "
+                      "Consumer/Regulatory Escalation, Mutual Cancellation) with pros, cons, risk levels, "
+                      "costs, and estimated timelines (Problem Statement Use Case 5).")
+async def get_legal_options(
+    filename: str,
+    analysis: dict,
+    language: str = Query("English"),
+    detail_level: str = Query("simple"),
+) -> Dict[str, Any]:
+    """Generate a structured Legal Recourse & Options Matrix."""
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    try:
+        pages = document_service.extract_text(file_path)
+        full_text = "\n".join([p["content"] for p in pages])
+
+        options_matrix = await ai_service.generate_legal_options(
+            analysis, full_text, language=language, detail_level=detail_level
+        )
+        return options_matrix
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/draft-notice", tags=["Notice Drafting"],
+          summary="Draft a formal legal notice communication",
+          description="Generate a formal legal notice or demand letter based on document terms "
+                      "and reported dispute issues (Problem Statement Use Cases 6 & 7).")
+async def draft_legal_notice(
+    filename: str,
+    analysis: dict,
+    issue_description: str = Query("", description="Optional custom issue description"),
+    language: str = Query("English"),
+) -> Dict[str, Any]:
+    """Draft a formal legal notice letter customized to document context."""
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    try:
+        pages = document_service.extract_text(file_path)
+        full_text = "\n".join([p["content"] for p in pages])
+
+        notice_draft = await ai_service.generate_legal_notice(
+            analysis, full_text, issue_description=issue_description, language=language
+        )
+        return notice_draft
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.post("/ask", tags=["Q&A"],
