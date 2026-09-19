@@ -6,14 +6,43 @@ import { Language, translations } from '../../lib/translations';
 
 interface ImportantDatesTimelineProps {
   language: Language;
+  deadlines?: string[];
+  dates?: Array<{ date: string; label: string; priority: string }>;
 }
 
-export const ImportantDatesTimeline: React.FC<ImportantDatesTimelineProps> = ({ language }) => {
-  const dates = [
-    { date: '01 Oct 2026', label: 'Agreement begins', priority: 'Standard' },
-    { date: '18 Jul 2027', label: 'Renewal notice deadline', priority: 'Critical' },
-    { date: '31 Aug 2027', label: 'Agreement ends', priority: 'Standard' },
-  ];
+export const ImportantDatesTimeline: React.FC<ImportantDatesTimelineProps> = ({
+  language,
+  deadlines,
+  dates: providedDates,
+}) => {
+  const dates = React.useMemo(() => {
+    if (providedDates && providedDates.length > 0) return providedDates;
+    if (deadlines && deadlines.length > 0) {
+      return deadlines.map((d, idx) => {
+        const isCritical =
+          d.toLowerCase().includes('notice') ||
+          d.toLowerCase().includes('penalty') ||
+          d.toLowerCase().includes('expire') ||
+          d.toLowerCase().includes('termination') ||
+          d.toLowerCase().includes('due');
+
+        const parts = d.split(':');
+        const label = parts.length > 1 ? parts[0].trim() : d;
+        const dateStr = parts.length > 1 ? parts[1].trim() : `Deadline ${idx + 1}`;
+
+        return {
+          date: dateStr,
+          label: label,
+          priority: isCritical ? 'Critical' : 'Standard',
+        };
+      });
+    }
+
+    return [
+      { date: 'Notice Period', label: 'Mandatory advance written notice required', priority: 'Critical' },
+      { date: 'Payment Due', label: 'Rent and maintenance payment due window', priority: 'Standard' },
+    ];
+  }, [deadlines, providedDates]);
 
   return (
     <div className="saas-card p-6 space-y-4">
@@ -25,7 +54,7 @@ export const ImportantDatesTimeline: React.FC<ImportantDatesTimelineProps> = ({ 
           </h3>
         </div>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F1F5F9] text-[#667085]">
-          Calendar Timeline
+          Calendar Timeline ({dates.length})
         </span>
       </div>
 
