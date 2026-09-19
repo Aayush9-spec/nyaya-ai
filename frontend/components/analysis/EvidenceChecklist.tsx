@@ -6,24 +6,26 @@ import { Language, translations } from '../../lib/translations';
 
 interface EvidenceChecklistProps {
   language: Language;
+  items?: string[];
 }
 
-export const EvidenceChecklist: React.FC<EvidenceChecklistProps> = ({ language }) => {
-  const defaultItems = [
-    'Original agreement copy',
-    'Payment receipts & transaction UTRs',
-    'Bank account statements',
-    'Email correspondence history',
-    'WhatsApp / text message logs',
-    'Previous written notices & letters',
-    'Identity & official contact records',
-  ];
+export const EvidenceChecklist: React.FC<EvidenceChecklistProps> = ({ language, items }) => {
+  const defaultItems =
+    items && items.length > 0
+      ? items
+      : [
+          'Original agreement copy',
+          'Payment receipts & transaction UTRs',
+          'Bank account statements',
+          'Email correspondence history',
+          'WhatsApp / text message logs',
+          'Previous written notices & letters',
+          'Identity & official contact records',
+        ];
 
   const [checked, setChecked] = useState<Record<number, boolean>>({
     0: true,
     1: true,
-    2: true,
-    3: true,
   });
 
   const toggleItem = (idx: number) => {
