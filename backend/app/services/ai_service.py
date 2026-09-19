@@ -71,6 +71,7 @@ class AIService:
         4. A risk score (0-100) and a detailed risk breakdown (High/Medium/Low).
         5. Hidden traps: flag anti-tenant/anti-consumer provisions, auto-renewals, or penalty clauses.
         6. Inconsistencies: flag conflicting clauses, contradictory terms, or ambiguous statements.
+        7. Extracted key clauses with title, originalText, simpleExplanation, whyItMatters, potentialRisk, severity (High/Medium/Low), and pageNumber.
 
         Document Text:
         {document_text}
@@ -86,7 +87,18 @@ class AIService:
                 {{"severity": "High", "issue": "...", "explanation": "...", "impact": "..."}}
             ],
             "hidden_traps": ["...", "..."],
-            "inconsistencies": ["...", "..."]
+            "inconsistencies": ["...", "..."],
+            "clauses": [
+                {{
+                    "title": "...",
+                    "originalText": "...",
+                    "simpleExplanation": "...",
+                    "whyItMatters": "...",
+                    "potentialRisk": "...",
+                    "severity": "High",
+                    "pageNumber": 1
+                }}
+            ]
         }}
         """
         try:
@@ -114,6 +126,7 @@ class AIService:
         risks = []
         traps = []
         inconsistencies = []
+        clauses = []
         risk_score = 25
 
         if "lock-in" in text_lower or "lock in" in text_lower:
@@ -125,7 +138,17 @@ class AIService:
                 "impact": "Financial loss if early departure is required."
             })
             traps.append("Mandatory lock-in period restricts early termination without heavy penalty.")
-        if "penalty" in text_lower or "interest" in text_lower or "late fee" in text_lower:
+            clauses.append({
+                "title": "Lock-In Period Clause",
+                "originalText": "The agreement includes a mandatory lock-in period restricting early termination.",
+                "simpleExplanation": "You cannot terminate the contract early without forfeiting rent/deposit balance.",
+                "whyItMatters": "Severe financial penalty if you must vacate or exit before term ends.",
+                "potentialRisk": "Mandatory financial lock-in and penalty forfeiture.",
+                "severity": "High",
+                "pageNumber": 1
+            })
+
+        if "penalty" in text_lower or "interest" in text_lower or "late" in text_lower:
             risk_score += 20
             risks.append({
                 "severity": "High",
@@ -134,6 +157,16 @@ class AIService:
                 "impact": "Potential compounding financial liability for payment delays."
             })
             traps.append("Automatic compound penalty interest added on delayed payments.")
+            clauses.append({
+                "title": "Late Payment & Penalty Clause",
+                "originalText": "Payments made past the due date incur automatic penalty interest and fee charges.",
+                "simpleExplanation": "Late payments incur compounding interest fines each day past the due date.",
+                "whyItMatters": "Increases financial liability for delayed transfers.",
+                "potentialRisk": "Compounding penalty interest.",
+                "severity": "High",
+                "pageNumber": 2
+            })
+
         if "deduct" in text_lower or "forfeit" in text_lower or "deposit" in text_lower:
             risk_score += 15
             risks.append({
@@ -142,12 +175,31 @@ class AIService:
                 "explanation": "Unilateral deduction clause covering property maintenance and painting charges.",
                 "impact": "Uncertainty in getting full security deposit refunded upon tenancy exit."
             })
-        if "notice" in text_lower:
+            clauses.append({
+                "title": "Security Deposit & Deductions Clause",
+                "originalText": "The security deposit is subject to unilateral deductions for painting, repairs, and damages.",
+                "simpleExplanation": "Landlord can deduct painting or maintenance fees from your deposit upon move-out.",
+                "whyItMatters": "Risk of not receiving your full deposit back upon lease expiration.",
+                "potentialRisk": "Unilateral deposit withholding.",
+                "severity": "Medium",
+                "pageNumber": 2
+            })
+
+        if "notice" in text_lower or "renew" in text_lower:
             risks.append({
                 "severity": "Low",
                 "issue": "Notice Period Requirement",
                 "explanation": "Mandatory advance written notice required prior to lease termination.",
                 "impact": "Failure to give timely notice auto-renews tenancy obligations."
+            })
+            clauses.append({
+                "title": "Termination Notice & Auto-Renewal Clause",
+                "originalText": "Mandatory advance written notice is required prior to contract expiry to prevent auto-renewal.",
+                "simpleExplanation": "Must provide 30-60 days advance written notice or the contract automatically renews.",
+                "whyItMatters": "Missing the notice cutoff locks you into another full term.",
+                "potentialRisk": "Automatic lease renewal.",
+                "severity": "Medium",
+                "pageNumber": 3
             })
 
         if not risks:
@@ -158,6 +210,17 @@ class AIService:
                 "impact": "Ensure compliance with defined notice periods and payment deadlines."
             })
             traps.append("Standard binding clauses requiring advance written notice for termination.")
+
+        if not clauses:
+            clauses.append({
+                "title": "General Obligations & Termination Clause",
+                "originalText": document_text[:200] + "...",
+                "simpleExplanation": "Standard contractual obligations, payment timelines, and dispute terms.",
+                "whyItMatters": "Establishes baseline binding legal terms between parties.",
+                "potentialRisk": "Standard compliance obligations.",
+                "severity": "Low",
+                "pageNumber": 1
+            })
 
         # Check for clause inconsistencies in notice or payment terms
         if "30 days" in text_lower and "60 days" in text_lower:
@@ -185,6 +248,7 @@ class AIService:
             "risk_breakdown": risks,
             "hidden_traps": traps,
             "inconsistencies": inconsistencies,
+            "clauses": clauses,
         }
 
     async def generate_action_plan(
