@@ -89,6 +89,24 @@ export default function NyayaAI() {
     },
   ];
 
+  const extractedClauses = React.useMemo(() => {
+    if (analysis?.clauses && Array.isArray(analysis.clauses) && analysis.clauses.length > 0) {
+      return analysis.clauses;
+    }
+    if (analysis?.risk_breakdown && Array.isArray(analysis.risk_breakdown) && analysis.risk_breakdown.length > 0) {
+      return analysis.risk_breakdown.map((r: any, idx: number) => ({
+        title: `Clause ${idx + 1}: ${r.issue || 'Extracted Clause'}`,
+        originalText: r.explanation || 'Extracted legal provision from uploaded document.',
+        simpleExplanation: r.explanation || r.issue,
+        whyItMatters: r.impact || 'Affects legal obligations and financial liability.',
+        potentialRisk: r.issue,
+        severity: r.severity || 'Medium',
+        pageNumber: idx + 1,
+      }));
+    }
+    return sampleClauses;
+  }, [analysis]);
+
   const handleAnalyzeFile = async (uploadedFile: File) => {
     setLoading(true);
     setErrorMsg(null);
@@ -448,7 +466,7 @@ export default function NyayaAI() {
                     <div className="lg:col-span-5">
                       <DocumentViewer
                         filename={file?.name || 'Rental_Agreement.pdf'}
-                        clauses={sampleClauses}
+                        clauses={extractedClauses}
                         onSelectClause={(c) => setSelectedClause(c)}
                         language={language}
                       />
@@ -492,16 +510,20 @@ export default function NyayaAI() {
                             hasActionPlan={!!actionPlan}
                             loading={loading}
                             onViewSourceClause={(title) => {
-                              const matched = sampleClauses.find((c) =>
+                              const matched = extractedClauses.find((c: any) =>
                                 c.title.toLowerCase().includes(title.toLowerCase())
-                              ) || sampleClauses[0];
+                              ) || extractedClauses[0];
                               setSelectedClause(matched);
                             }}
                             language={language}
                           />
 
                           {/* Obligations List */}
-                          <ObligationsList language={language} />
+                          <ObligationsList
+                            obligations={analysis.obligations}
+                            rights={analysis.rights}
+                            language={language}
+                          />
                         </div>
                       )}
 
@@ -529,9 +551,9 @@ export default function NyayaAI() {
                             hasActionPlan={!!actionPlan}
                             loading={loading}
                             onViewSourceClause={(title) => {
-                              const matched = sampleClauses.find((c) =>
+                              const matched = extractedClauses.find((c: any) =>
                                 c.title.toLowerCase().includes(title.toLowerCase())
-                              ) || sampleClauses[0];
+                              ) || extractedClauses[0];
                               setSelectedClause(matched);
                             }}
                             language={language}
@@ -542,13 +564,20 @@ export default function NyayaAI() {
                       {/* TAB: CLAUSES */}
                       {activeAnalysisTab === 'clauses' && (
                         <div className="space-y-6">
-                          <ObligationsList language={language} />
+                          <ObligationsList
+                            obligations={analysis.obligations}
+                            rights={analysis.rights}
+                            language={language}
+                          />
                         </div>
                       )}
 
                       {/* TAB: DEADLINES */}
                       {activeAnalysisTab === 'deadlines' && (
-                        <ImportantDatesTimeline language={language} />
+                        <ImportantDatesTimeline
+                          deadlines={analysis.deadlines}
+                          language={language}
+                        />
                       )}
 
                       {/* TAB: ACTION PLAN */}
@@ -559,7 +588,10 @@ export default function NyayaAI() {
                             onGenerateQuestions={() => setActiveAnalysisTab('askAi')}
                             language={language}
                           />
-                          <EvidenceChecklist language={language} />
+                          <EvidenceChecklist
+                            items={actionPlan?.evidence_checklist || analysis?.evidence_checklist}
+                            language={language}
+                          />
                         </div>
                       )}
 
